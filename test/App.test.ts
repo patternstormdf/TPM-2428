@@ -1,32 +1,18 @@
-import {app} from "../src/app"
-import * as HTTP from "node-fetch"
-import invoke from "node-fetch"
-
-test("synth the app", async(done) => {
-    await app.synthetise("p2vtpm")
-    done()
-}, 1000000)
-
-test("deploy the app", async(done) => {
-    await app.deploy("p2vtpm")
-    done()
-}, 1000000)
-
-test("undeploy the app", async(done) => {
-    await app.undeploy("p2vtpm")
-    done()
-}, 1000000)
+import {App as Application} from "../src/resources/App"
+import * as AWS from "aws-sdk"
 
 
-const url: string = "https://u33ykj6fp9.execute-api.us-east-1.amazonaws.com/prod/"
+const sf: AWS.StepFunctions = new AWS.StepFunctions({region: Application.region})
 
-async function post(input: object): Promise<HTTP.Response> {
+type Output = AWS.StepFunctions.Types.StartExecutionOutput
 
-    return await invoke(url, {
-        method: "post",
-        body: JSON.stringify(input),
-        headers: {"Content-Type": "application/json"}
-    })
+async function post(input: object): Promise<Output> {
+    const props: AWS.StepFunctions.Types.StartExecutionInput = {
+        stateMachineArn: "arn:aws:states:us-east-1:162174280605:stateMachine:cpani-sf-badge-task-1-state-machine-orchestrator",
+        input: JSON.stringify(input)
+    }
+    const output: AWS.StepFunctions.Types.StartExecutionOutput = await sf.startExecution(props).promise()
+    return output
 }
 
 test("positive delay and a future timestamp", async(done) => {
@@ -45,7 +31,7 @@ test("positive delay and a future timestamp", async(done) => {
         },
         "Message": "positive delay and a future timestamp"
     }
-    const output: HTTP.Response = await post(input)
+    const output: Output = await post(input)
     console.log(JSON.stringify(output))
     done()
 }, 5000)
@@ -62,7 +48,7 @@ test("past timestamp", async(done) => {
         },
         "Message": "past timestamp"
     }
-    const output: HTTP.Response = await post(input)
+    const output: Output = await post(input)
     console.log(JSON.stringify(output))
     done()
 }, 5000)
@@ -79,7 +65,7 @@ test("invalid timestamp", async(done) => {
         },
         "Message": "invalid timestamp"
     }
-    const output: HTTP.Response = await post(input)
+    const output: Output = await post(input)
     console.log(JSON.stringify(output))
     done()
 }, 5000)
@@ -94,9 +80,9 @@ test("zero delay", async(done) => {
         "Topic": {
             "ARN": "arn:aws:sns:us-east-1:162174280605:cpani-sf-badge-task-1-topic1"
         },
-        "Message": "invalid timestamp"
+        "Message": "zero delay"
     }
-    const output: HTTP.Response = await post(input)
+    const output: Output = await post(input)
     console.log(JSON.stringify(output))
     done()
 }, 5000)
@@ -111,9 +97,9 @@ test("negative delay", async(done) => {
         "Topic": {
             "ARN": "arn:aws:sns:us-east-1:162174280605:cpani-sf-badge-task-1-topic1"
         },
-        "Message": "invalid timestamp"
+        "Message": "negative delay"
     }
-    const output: HTTP.Response = await post(input)
+    const output: Output = await post(input)
     console.log(JSON.stringify(output))
     done()
 }, 5000)
@@ -131,7 +117,33 @@ test("both delay and timespamp present", async(done) => {
         },
         "Message": "Message sent at each time given in the schedule"
     }
-    const output: HTTP.Response = await post(input)
+    const output: Output = await post(input)
+    console.log(JSON.stringify(output))
+    done()
+}, 5000)
+
+test("schedule is a string", async(done) => {
+    const input = {
+        "Schedule": "not an array",
+        "Topic": {
+            "ARN": "arn:aws:sns:..."
+        },
+        "Message": "Message sent at each time given in the schedule"
+    }
+    const output: Output = await post(input)
+    console.log(JSON.stringify(output))
+    done()
+}, 5000)
+
+test("schedule is an object", async(done) => {
+    const input = {
+        "Schedule": {},
+        "Topic": {
+            "ARN": "arn:aws:sns:..."
+        },
+        "Message": "Message sent at each time given in the schedule"
+    }
+    const output: Output = await post(input)
     console.log(JSON.stringify(output))
     done()
 }, 5000)
@@ -143,7 +155,7 @@ test("no schedule", async(done) => {
         },
         "Message": "Message sent at each time given in the schedule"
     }
-    const output: HTTP.Response = await post(input)
+    const output: Output = await post(input)
     console.log(JSON.stringify(output))
     done()
 }, 5000)
@@ -157,7 +169,7 @@ test("no topic", async(done) => {
         ],
         "Message": "Message sent at each time given in the schedule"
     }
-    const output: HTTP.Response = await post(input)
+    const output: Output = await post(input)
     console.log(JSON.stringify(output))
     done()
 }, 5000)
@@ -173,21 +185,21 @@ test("no message", async(done) => {
             "ARN": "arn:aws:sns:..."
         }
     }
-    const output: HTTP.Response = await post(input)
+    const output: Output = await post(input)
     console.log(JSON.stringify(output))
     done()
 }, 5000)
 
 test("A", async(done) => {
     const date1: Date = new Date(Date.now() + 10000)
-    const date2 : Date = new Date(date1.getTime() + (30*60*1000))
+    const date2 : Date = new Date(date1.getTime() + (1*60*1000))
     const input = {
         "Schedule": [
             {
                 "Timestamp": date1.toISOString()
             },
             {
-                "Delay": 3600
+                "Delay": 10
             },
             {
                 "Timestamp": date2.toISOString(),
@@ -197,7 +209,7 @@ test("A", async(done) => {
         "Topic": { "ARN": "arn:aws:sns:us-east-1:162174280605:cpani-sf-badge-task-1-topic1" },
         "Message": "A"
     }
-    const output: HTTP.Response = await post(input)
+    const output: Output = await post(input)
     console.log(JSON.stringify(output))
     done()
 }, 5000)
@@ -206,7 +218,7 @@ test("B", async(done) => {
     const input = {
         "Schedule": [
             {
-                "Delay": 1800
+                "Delay": 4
             },
             {
                 "Timestamp": "2020-10-31T00:00:00Z"
@@ -215,7 +227,7 @@ test("B", async(done) => {
         "Topic": { "ARN": "arn:aws:sns:us-east-1:162174280605:cpani-sf-badge-task-1-topic2" },
         "Message": "B"
     }
-    const output: HTTP.Response = await post(input)
+    const output: Output = await post(input)
     console.log(JSON.stringify(output))
     done()
 }, 5000)
@@ -224,7 +236,7 @@ test("C", async(done) => {
     const input = {
         "Schedule": [
             {
-                "Delay": 60
+                "Delay": 2
             },
             {
                 "Delay": -1
@@ -234,7 +246,7 @@ test("C", async(done) => {
         "Message": "C"
     }
 
-    const output: HTTP.Response = await post(input)
+    const output: Output = await post(input)
     console.log(JSON.stringify(output))
     done()
 }, 5000)

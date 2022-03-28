@@ -4,8 +4,10 @@ import {Application} from "@pstorm/aws-cdk"
 export class App {
     id: string = "cpani-sf-badge-task-1"
 
+    static region: string = "us-east-1"
+
     private _application: Application = Application.new(`${this.id}-app`,
-        "162174280605", "us-east-1", "src/app.ts")
+        "162174280605", App.region, "src/app.ts")
 
     tags: Application.Resource.Tag[] = [
         {key: "owner", value: "claudi.paniagua@devfactory.com"},

@@ -23,12 +23,11 @@
     "@pstorm/aws-cdk": "latest",
     "@types/jest": "^24.0.22",
     "@types/node": "^14.0.0",
-    "@types/node-fetch": "^2.6.1",
     "aws-cdk-lib": "^2.15.0",
     "jest": "^24.9.0",
-    "node-fetch": "^2.6.1",
     "ts-jest": "^24.1.0",
     "ts-node": "^10.5.0",
-    "typescript": "latest"
+    "typescript": "latest",
+    "aws-sdk": "^2.1060.0"
   }
 }
